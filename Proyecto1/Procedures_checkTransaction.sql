@@ -12,52 +12,65 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        -- Check if the email is already used
+        -- Verificar que ninguno de los parÃ¡metros sea nulo
+        IF @Firstname IS NULL OR @Lastname IS NULL OR @Email IS NULL OR @DateOfBirth IS NULL OR @Password IS NULL
+        BEGIN
+            RAISERROR('Ninguno de los parÃ¡metros puede ser NULL.', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        -- Verificar si el email ya estÃ¡ en uso
         IF EXISTS (SELECT 1 FROM [proyecto1].[Usuarios] WHERE Email = @Email)
         BEGIN
-            THROW 50000, 'El email ya está asociado con otra cuenta.', 1;
+            THROW 50000, 'El email ya estÃ¡ asociado con otra cuenta.', 1;
         END
 
         DECLARE @UserId UNIQUEIDENTIFIER = NEWID();
         DECLARE @RoleId UNIQUEIDENTIFIER;
         DECLARE @TFAStatus BIT = 0; -- Valor predeterminado para TFAStatus
 
-        -- Insert the new user
+        -- Insertar el nuevo usuario
         INSERT INTO [proyecto1].[Usuarios] (Id, Firstname, Lastname, Email, DateOfBirth, Password, LastChanges, EmailConfirmed)
         VALUES (@UserId, @Firstname, @Lastname, @Email, @DateOfBirth, @Password, GETDATE(), 0);
 
-        -- Insert the student profile
+        -- Insertar el perfil de estudiante
         INSERT INTO [proyecto1].[ProfileStudent] (UserId, Credits)
         VALUES (@UserId, @Credits);
 
-        -- Get the role ID for 'Student'
+        -- Obtener el ID del rol de 'Student'
         SELECT @RoleId = Id FROM [proyecto1].[Roles] WHERE RoleName = 'Student';
 
-        -- Assign the student role to the user
+        -- Asignar el rol de estudiante al usuario
         INSERT INTO [proyecto1].[UsuarioRole] (RoleId, UserId, IsLatestVersion)
         VALUES (@RoleId, @UserId, 1);
 
-        -- Insert the TFA status
+        -- Insertar el estado de TFA
         INSERT INTO [proyecto1].[TFA] (UserId, Status, LastUpdate)
         VALUES (@UserId, @TFAStatus, GETDATE());
 
-        -- Insert the notification
+        -- Insertar la notificaciÃ³n
         INSERT INTO [proyecto1].[Notification] (UserId, Message, Date)
         VALUES (@UserId, 'Usuario registrado en el sistema.', GETDATE());
 
         COMMIT TRANSACTION;
+
+        PRINT 'TransacciÃ³n exitosa';
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0
             ROLLBACK TRANSACTION;
 
-        -- Raise an error with the details of the exception
+        -- Manejo de errores
         DECLARE @ErrorMessage NVARCHAR(4000), @ErrorSeverity INT, @ErrorState INT;
         SELECT @ErrorMessage = ERROR_MESSAGE(), @ErrorSeverity = ERROR_SEVERITY(), @ErrorState = ERROR_STATE();
         RAISERROR (@ErrorMessage, @ErrorSeverity, @ErrorState);
+
+        PRINT 'TransacciÃ³n fallida';
     END CATCH
-END
+END;
 GO
+
 
 
 
@@ -73,14 +86,14 @@ BEGIN
 
         DECLARE @UserId UNIQUEIDENTIFIER;
 
-        -- Verificar que el correo esté registrado y obtener el UserId
+        -- Verificar que el correo estï¿½ registrado y obtener el UserId
         SELECT @UserId = [Id]
         FROM [proyecto1].[Usuarios]
         WHERE [Email] = @Email;
 
         IF @UserId IS NULL
         BEGIN
-            RAISERROR('El correo no está registrado.', 16, 1);
+            RAISERROR('El correo no estï¿½ registrado.', 16, 1);
             RETURN;
         END
 
@@ -132,8 +145,8 @@ BEGIN
         INSERT INTO [proyecto1].[CourseTutor] ([TutorId], [CourseCodCourse])
         VALUES (@UserId, @CodCourse);
 
-        -- Enviar notificación
-        DECLARE @Message NVARCHAR(MAX) = 'Has sido promovido al rol de tutor y asignado al curso con código ' + CAST(@CodCourse AS NVARCHAR) + '.';
+        -- Enviar notificaciï¿½n
+        DECLARE @Message NVARCHAR(MAX) = 'Has sido promovido al rol de tutor y asignado al curso con cï¿½digo ' + CAST(@CodCourse AS NVARCHAR) + '.';
         INSERT INTO [proyecto1].[Notification] ([UserId], [Message], [Date])
         VALUES (@UserId, @Message, GETDATE());
 
@@ -166,14 +179,14 @@ BEGIN
         DECLARE @CourseCreditsRequired INT;
         DECLARE @UserCredits INT;
 
-        -- Verificar que el correo esté registrado y obtener el UserId
+        -- Verificar que el correo estï¿½ registrado y obtener el UserId
         SELECT @UserId = [Id]
         FROM [proyecto1].[Usuarios]
         WHERE [Email] = @Email;
 
         IF @UserId IS NULL
         BEGIN
-            RAISERROR('El correo no está registrado.', 16, 1);
+            RAISERROR('El correo no estï¿½ registrado.', 16, 1);
             RETURN;
         END
 
@@ -188,7 +201,7 @@ BEGIN
             RETURN;
         END
 
-        -- Obtener los créditos necesarios para el curso
+        -- Obtener los crï¿½ditos necesarios para el curso
         SELECT @CourseCreditsRequired = [CreditsRequired]
         FROM [proyecto1].[Course]
         WHERE [CodCourse] = @CodCourse;
@@ -200,15 +213,15 @@ BEGIN
             RETURN;
         END
 
-        -- Obtener los créditos actuales del usuario
+        -- Obtener los crï¿½ditos actuales del usuario
         SELECT @UserCredits = [Credits]
         FROM [proyecto1].[ProfileStudent]
         WHERE [UserId] = @UserId;
 
-        -- Verificar que el usuario cumple con los créditos necesarios
+        -- Verificar que el usuario cumple con los crï¿½ditos necesarios
         IF @UserCredits < @CourseCreditsRequired
         BEGIN
-            RAISERROR('El usuario no cumple con los créditos necesarios para este curso.', 16, 1);
+            RAISERROR('El usuario no cumple con los crï¿½ditos necesarios para este curso.', 16, 1);
             RETURN;
         END
 
@@ -217,7 +230,7 @@ BEGIN
         VALUES (@UserId, @CodCourse);
 
         -- Notificar al estudiante
-        DECLARE @StudentMessage NVARCHAR(MAX) = 'Has sido asignado al curso con código ' + CAST(@CodCourse AS NVARCHAR) + '.';
+        DECLARE @StudentMessage NVARCHAR(MAX) = 'Has sido asignado al curso con cï¿½digo ' + CAST(@CodCourse AS NVARCHAR) + '.';
         INSERT INTO [proyecto1].[Notification] ([UserId], [Message], [Date])
         VALUES (@UserId, @StudentMessage, GETDATE());
 
@@ -235,7 +248,7 @@ BEGIN
         END
 
         -- Notificar al tutor
-        DECLARE @TutorMessage NVARCHAR(MAX) = 'El estudiante con correo ' + @Email + ' ha sido asignado a tu curso con código ' + CAST(@CodCourse AS NVARCHAR) + '.';
+        DECLARE @TutorMessage NVARCHAR(MAX) = 'El estudiante con correo ' + @Email + ' ha sido asignado a tu curso con cï¿½digo ' + CAST(@CodCourse AS NVARCHAR) + '.';
         INSERT INTO [proyecto1].[Notification] ([UserId], [Message], [Date])
         VALUES (@TutorId, @TutorMessage, GETDATE());
 
@@ -310,10 +323,10 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        -- Verificar que los créditos requeridos sean mayores que cero
+        -- Verificar que los crï¿½ditos requeridos sean mayores que cero
         IF @CreditsRequired <= 0
         BEGIN
-            RAISERROR('Los créditos requeridos deben ser mayores que cero.', 16, 1);
+            RAISERROR('Los crï¿½ditos requeridos deben ser mayores que cero.', 16, 1);
             RETURN;
         END
 
@@ -352,14 +365,14 @@ BEGIN
             [LastName] = CASE WHEN [LastName] NOT LIKE '%[^a-zA-Z]%' THEN [LastName] ELSE NULL END
         WHERE [FirstName] IS NOT NULL OR [LastName] IS NOT NULL;
 
-        -- Validar que en la tabla Course solamente se ingresen letras en Name y números en CreditsRequired
+        -- Validar que en la tabla Course solamente se ingresen letras en Name y nï¿½meros en CreditsRequired
         UPDATE [proyecto1].[Course]
         SET [Name] = CASE WHEN [Name] NOT LIKE '%[^a-zA-Z]%' THEN [Name] ELSE NULL END,
             [CreditsRequired] = CASE WHEN ISNUMERIC([CreditsRequired]) = 1 THEN [CreditsRequired] ELSE NULL END
         WHERE [Name] IS NOT NULL OR [CreditsRequired] IS NOT NULL;
 
-        -- Mostrar mensaje de éxito
-        PRINT 'Actualización de restricciones completada.';
+        -- Mostrar mensaje de ï¿½xito
+        PRINT 'Actualizaciï¿½n de restricciones completada.';
 
         COMMIT TRANSACTION;
     END TRY
