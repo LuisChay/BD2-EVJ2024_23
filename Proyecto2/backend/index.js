@@ -328,10 +328,121 @@ app.post('/insert-initial-data', async (req, res) => {
     }
   });
 
+  // Endpoint para obtener todos los usuarios
+  app.get('/users', async (req, res) => {
+    try {
+      const users = await User.find().exec();
+      res.json(users);
+    } catch (err) {
+      console.error('Error al obtener usuarios:', err);
+      res.status(500).json({ error: 'Error al obtener usuarios' });
+    }
+  });
+
+  // Endpoint para obtener todos los pedidos
+  app.get('/orders', async (req, res) => {
+    const {user} = req.query;
+    //console.log(user)
+    try {
+      const orders = await Order.find({userId: user}).exec();
+      res.json(orders);
+    } catch (err) {
+      console.error('Error al obtener ordenes:', err);
+      res.status(500).json({ error: 'Error al obtener ordenes' });
+    }
+  });
+
+  // Endpoint para obtener el carrito
+  app.get('/cart', async (req, res) => {
+    const {user} = req.query;
+    //console.log(user)
+    try {
+      const cart = await Cart.find({userId: user}).exec();
+      res.json(cart);
+    } catch (err) {
+      console.error('Error al obtener el carrito:', err);
+      res.status(500).json({ error: 'Error al obtener el carrito' });
+    }
+  });
+
+  // Endpoint para agregar un elemento al carrito
+  app.post('/api/cart/add', async (req, res) => {
+    const { user, bookId, quantity } = req.body;
+
+    try {
+      if (!mongoose.Types.ObjectId.isValid(user) || !mongoose.Types.ObjectId.isValid(bookId)) {
+        return res.status(400).json({ error:'UserId o bookId invalido'});
+      }
+
+      const updatedCart = await Cart.findOneAndUpdate(
+        { user },
+        { $push: { items: { bookId, quantity } } },
+        { new: true, upsert: true }
+      );
+
+      res.json(updatedCart);
+    } catch (error) {
+      res.status(500).json({ error:`Error al agregar elementos al carrito: ${error.message}`});
+    }
+  });
+
+  // Endpoint para actualizar la cantidad de un elemento en el carrito
+  app.post('/api/cart/updquantity', async (req, res) => {
+    const { user, bookId, quantity } = req.body;
+
+    try {
+      if (!mongoose.Types.ObjectId.isValid(user) || !mongoose.Types.ObjectId.isValid(bookId)) {
+        return res.status(400).json({ error:'UserId o bookId invalido'});
+      }
+
+      const cart = await Cart.findOne({ user });
+      if (!cart) {
+        return res.status(404).json({ error:'Carrito no encontrado'});
+      }
+
+      const itemIndex = cart.items.findIndex(item => item.bookId.toString() === bookId);
+      if (itemIndex === -1) {
+        return res.status(404).json({ error:'No existe el elemento en el carrito'});
+      }
+
+      cart.items[itemIndex].quantity = quantity;
+      await cart.save();
+
+      res.json(cart);
+    } catch (error) {
+      res.status(500).json({ error:`Error al modificar la cantidad: ${error.message}`});
+    }
+  });
+
+  // Endpoint para eliminar un elemento del carrito
+  app.delete('/api/cart/deleteone', async (req, res) => {
+    const { user, bookId } = req.body;
+
+    try {
+      if (!mongoose.Types.ObjectId.isValid(user) || !mongoose.Types.ObjectId.isValid(bookId)) {
+        return res.status(400).json({ error: 'UserId o bookId invalido'});
+      }
+
+      const result = await Cart.updateOne(
+        { user },
+        { $pull: { items: { bookId } } }
+      );
+
+      if (result.nModified === 0) {
+        return res.status(404).json({ error: 'No existe el elemento en el carrito'});
+      }
+
+      res.send('Elemento eliminado exitosamente');
+    } catch (error) {
+      res.status(500).json({ error: `Error al eliminar elemento en el carrito: ${error.message}`});
+    }
+  });
+
   app.listen(port, () => {
     console.log(`Servidor API ejecutándose en http://localhost:${port}`);
   });
 }
+
 
 // Conectar a la base de datos con el nombre especificado
 mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true, dbName: dbName })
