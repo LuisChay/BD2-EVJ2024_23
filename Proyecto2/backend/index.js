@@ -1,12 +1,20 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const cors = require('cors'); // Importar el módulo CORS
 
 const app = express();
 const port = 5000;
 
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.DB_NAME;
+
+// Middleware CORS
+app.use(cors());
+app.use(bodyParser.json({ limit: '100mb' })); // Ajusta el límite según tus necesidades
+app.use(express.json());
+
 
 // Definir esquemas y modelos de Mongoose
 const userSchema = new mongoose.Schema({
@@ -317,8 +325,31 @@ app.post('/insert-initial-data', async (req, res) => {
     }
   });
 
+  // Endpoint para agregar un libro
+  app.post('/libros/addlibro', async (req, res) => {
+    try {
+      const { title, authorId, description, genre, publicationDate, price, stock, imageUrl, averageRating } = req.body;
+      const book = new Book({
+        title,
+        authorId,
+        description,
+        genre,
+        publicationDate,
+        price,
+        stock,
+        imageUrl,
+        averageRating
+      });
+      const newBook = await book.save();
+      res.json(newBook);
+    } catch (err) {
+      console.error('Error al agregar libro:', err);
+      res.status(500).json({ error: 'Error al agregar libro' });
+    }
+  });
+
   // Endpoint para obtener todos los libros
-  app.get('/books', async (req, res) => {
+  app.get('/libros/getlibros', async (req, res) => {
     try {
       const books = await Book.find().populate('authorId').exec();
       res.json(books);
@@ -327,6 +358,84 @@ app.post('/insert-initial-data', async (req, res) => {
       res.status(500).json({ error: 'Error al obtener libros' });
     }
   });
+
+  // Endpoint para obtener un libro por su ID
+  app.get('/libros/getlibro/:id', async (req, res) => {
+    try {
+      const book = await Book.findById(req.params.id).populate('authorId').exec();
+      if (book) {
+        res.json(book);
+      } else {
+        res.status(404).json({ error: 'Libro no encontrado' });
+      }
+    } catch (err) {
+      console.error('Error al obtener libro:', err);
+      res.status(500).json({ error: 'Error al obtener libro' });
+    }
+  });
+
+  // Endpoint para editar un libro por su ID
+  app.post('/libros/editlibro/:id', async (req, res) => {
+    try {
+      const book = await Book.findById(req.params.id).exec();
+      if (book) {
+        const { title, authorId, description, genre, publicationDate, price, stock, imageUrl, averageRating } = req.body;
+        book.title = title;
+        book.authorId = authorId;
+        book.description = description;
+        book.genre = genre;
+        book.publicationDate = publicationDate;
+        book.price = price;
+        book.stock = stock;
+        book.imageUrl = imageUrl;
+        book.averageRating = averageRating;
+        const updatedBook = await book.save();
+        res.json(updatedBook);
+      } else {
+        res.status(404).json({ error: 'Libro no encontrado' });
+      }
+    } catch (err) {
+      console.error('Error al editar libro:', err);
+      res.status(500).json({ error: 'Error al editar libro' });
+    }
+  });
+
+  // Endpoint para eliminar un libro por su ID
+app.post('/libros/deletelibro/:id', async (req, res) => {
+  try {
+    const result = await Book.deleteOne({ _id: req.params.id }).exec();
+    if (result.deletedCount > 0) {
+      res.json({ message: 'Libro eliminado correctamente' });
+    } else {
+      res.status(404).json({ error: 'Libro no encontrado' });
+    }
+  } catch (err) {
+    console.error('Error al eliminar libro:', err);
+    res.status(500).json({ error: 'Error al eliminar libro' });
+  }
+});
+
+
+  // Endpoint para obtener autores
+  app.get('/autores', async (req, res) => {
+    try {
+      const authors = await Author.find().populate('books').exec();
+      res.json(authors);
+    } catch (err) {
+      console.error('Error al obtener autores:', err);
+      res.status(500).json({ error: 'Error al obtener autores' });
+    }
+  });
+
+
+  // Manejo de errores
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('Error de sintaxis en JSON:', err);
+    return res.status(400).json({ error: 'Error de sintaxis en JSON' });
+  }
+  next();
+});
 
   app.listen(port, () => {
     console.log(`Servidor API ejecutándose en http://localhost:${port}`);
