@@ -744,6 +744,12 @@ app.post('/libros/deletelibro/:id', async (req, res) => {
         return res.status(404).json({ error: 'Usuario no encontrado' });
       }
 
+      const useObject = usuario.toObject();
+      // Validar la contraseña
+      if (password !== useObject.password) {
+        return res.status(401).json({ error: 'Contraseña incorrecta' });
+      }
+
       res.json(usuario);
     } catch (err) {
       console.error('Error al iniciar sesión:', err);
