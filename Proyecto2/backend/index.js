@@ -36,7 +36,8 @@ const userSchema = new mongoose.Schema({
   password: String,
   role: String,
   shippingAddress: String,
-  paymentMethod: String
+  paymentMethod: String,
+  profilePhotoUrl: String // Nuevo campo para la foto de perfil
 }, { collection: 'User' });
 
 const authorSchema = new mongoose.Schema({
@@ -637,6 +638,146 @@ app.post('/libros/deletelibro/:id', async (req, res) => {
   });
   
 
+  /*-----------------------------CATALOGO DE AUTORES */
+  app.get('/authors', async (req, res) => {
+      try {
+          const autores = await Author.find().exec();
+          res.json(autores);
+      } catch (err) {
+          console.error('Error al obtener libros:', err);
+          res.status(500).json({ error: 'Error al obtener Autores' });
+      }
+  });
+
+  //Encontrar un autor por su ID
+  app.post('/author', async (req, res) => {
+    try {
+      const { authorId } = req.body;
+
+      //validar que no venga vacio
+      if (!authorId) {
+        return res.status(400).json({ error: 'ID del autor requerido' });
+      }
+
+      // Buscar al autor por su ID
+      const autor = await Author.findById(authorId).populate('books').exec();
+
+      // Validar que el autor exista
+      if (!autor) {
+        return res.status(404).json({ error: 'Autor no encontrado' });
+      }
+
+      res.json(autor);
+      
+    } catch (err) {
+      console.error('Error al obtener autor:', err);
+      res.status(500).json({ error: 'Error al obtener autor' });
+    }
+  });
+
+
+  /*--------------MANEJO DE USUARIOS -------------------*/
+  // Registrar un usuario
+  app.post('/register', async (req, res) => {
+    try {
+      const { name, lastName, age, email, password, shippingAddress, paymentMethod, profilePhotoUrl, nameImage } = req.body;
+      
+      //console.log("NAMEIMAGE:",nameImage)
+      
+      // Validar que todos los campos requeridos están presentes
+      if (!name || !lastName || !email || !password) {
+        return res.status(400).json({ error: 'Faltan datos requeridos' });
+      }
+      
+      // Verificar si el correo ya está registrado
+      const usuarioExistente = await User.findOne({ email }).exec();
+      if (usuarioExistente) {
+        return res.status(400).json({ error: 'El correo ya está registrado' });
+      }
+
+      // Asignar una URL de foto predeterminada si no se proporciona
+      console.log("imagebase64:",profilePhotoUrl)
+      var urlS3 = "https://proyecto2-bd2.s3.amazonaws.com/Usuarios/userPredeterminada.png";
+      if (profilePhotoUrl){
+        const imageUrlS3 = await subirImagenBase64(profilePhotoUrl, nameImage, "Usuarios");
+        console.log("urlS3:",imageUrlS3)
+        var urlS3 = imageUrlS3;
+      }
+      
+      // Crear un nuevo usuario
+      const nuevoUsuario = new User({
+        name,
+        lastName,
+        age,
+        email,
+        password,
+        role:"Cliente",
+        shippingAddress,
+        paymentMethod,
+        profilePhotoUrl: urlS3
+      });
+
+      // Guardar el nuevo usuario en la base de datos
+      await nuevoUsuario.save();
+      res.status(201).json({ message: 'Usuario registrado exitosamente', usuario: nuevoUsuario });
+    } catch (err) {
+      console.error('Error al registrar usuario:', err);
+      res.status(500).json({ error: 'Error al registrar usuario' });
+    }
+  });
+
+  //Iniciar sesión
+  app.post('/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      // Validar que el correo y la contraseña estén presentes
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Correo y contraseña son requeridos' });
+      }
+
+      // Buscar al usuario por su correo electrónico
+      const usuario = await User.findOne({ email }).exec();
+
+      // Validar que el usuario exista
+      if (!usuario) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      res.json(usuario);
+    } catch (err) {
+      console.error('Error al iniciar sesión:', err);
+      res.status(500).json({ error: 'Error al iniciar sesión' });
+    }
+  });
+
+
+   // Obtener la información de un usuario por su ID
+   app.post('/user', async (req, res) => {
+    try {
+      const { userId } = req.body;
+
+      //validar que no venga vacio
+      if (!userId) {
+        return res.status(400).json({ error: 'ID del autor requerido' });
+      }
+
+      // Buscar al autor por su ID
+      const usuario = await User.findById(userId).exec();
+
+      // Validar que el autor exista
+      if (!usuario) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      res.json(usuario);
+      
+    } catch (err) {
+      console.error('Error al obtener Usuario:', err);
+      res.status(500).json({ error: 'Error al obtener Usuario' });
+    }
+  });
+    
 
   // Manejo de errores
 app.use((err, req, res, next) => {
