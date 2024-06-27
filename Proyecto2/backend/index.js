@@ -475,15 +475,58 @@ app.post('/libros/deletelibro/:id', async (req, res) => {
 
 
   // Endpoint para obtener autores
-  app.get('/autores', async (req, res) => {
+  app.get('/getAutors', async (req, res) => {
     try {
-      const authors = await Author.find().populate('books').exec();
+      const authors = await Author.find({}, { books: 0 }).exec();
       res.json(authors);
     } catch (err) {
       console.error('Error al obtener autores:', err);
       res.status(500).json({ error: 'Error al obtener autores' });
     }
   });
+
+  // Endpoint para eliminar un autor por su Id
+  app.delete('/deleteAutor/:id', async (req, res) => {
+    try {
+      const authorId = req.params.id;
+      const result = await Author.deleteOne({ _id: authorId }).exec();
+      if (result.deletedCount > 0) {
+        res.json({ message: 'Autor eliminado exitosamente' });
+      } else {
+        res.status(404).json({ error: 'Autor no encontrado' });
+      }
+    } catch (err) {
+      console.error('Error al eliminar autor:', err);
+      res.status(500).json({ error: 'Error al eliminar autor' });
+    }
+  });
+  
+
+  // Endpoint para agregar un autor
+  app.post('/addAutor', async (req, res) => {
+    const { name, biography, photoUrl, books } = req.body;
+  
+    // Validación de parámetros requeridos
+    if (!name || !biography || !photoUrl || !books) {
+      return res.status(400).json({ error: 'Todos los parámetros son requeridos' });
+    }
+  
+    const newAuthor = new Author({
+      name,
+      biography,
+      photoUrl,
+      books
+    });
+  
+    try {
+      const savedAuthor = await newAuthor.save();
+      res.status(201).json(savedAuthor);
+    } catch (err) {
+      console.error('Error al agregar autor:', err);
+      res.status(500).json({ error: 'Error al agregar autor' });
+    }
+  });
+  
 
 
   // Manejo de errores
