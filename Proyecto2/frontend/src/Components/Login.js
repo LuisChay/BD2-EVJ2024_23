@@ -29,7 +29,12 @@ function Login() {
             },
             body: JSON.stringify(formData)
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.error); });
+            }
+            return response.json();
+        })
         .then(data => {
             console.log("Success:", data);
             
@@ -40,10 +45,13 @@ function Login() {
             localStorage.setItem('userId', data._id); // Suponiendo que el ID del usuario está en data._id
 
             // Redirige al usuario después del inicio de sesión exitoso
-            navigate('/Perfil'); // Cambia '/Cards' por la ruta a la que quieres redirigir
+            
+            navigate('/Perfil'); // Cambia '/Perfil' por la ruta a la que quieres redirigir
         })
         .catch((error) => {
+            alert(error);
             console.error("Error:", error);
+            
         });
     };
 

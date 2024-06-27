@@ -57,7 +57,8 @@ function AddUser() {
 			  });
 	  
 			  if (!response.ok) {
-				throw new Error('ERROR en la respuesta ' + response.statusText);
+          alert("Error Al registrar Usuario ");
+				  throw new Error('ERROR en la respuesta ' + response.statusText);
 			  }
 	  
 			  const data = await response.json();

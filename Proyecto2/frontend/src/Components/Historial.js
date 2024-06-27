@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import HCard from './HCard';
 
 export function Historial(){
+
   const [pedidos, setPedidos] = useState([]);
   useEffect(() => {
   const fetchOrders = async (userId) => {
