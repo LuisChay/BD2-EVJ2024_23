@@ -1,12 +1,31 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const cors = require('cors'); // Importar el módulo CORS
+const AWS = require('aws-sdk'); // Importar el módulo AWS SDK
 
 const app = express();
 const port = 5000;
 
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.DB_NAME;
+const awsaccesid = process.env.AWS_ACCESS_KEY_ID;
+const awsacceskey = process.env.AWS_SECRET_ACCESS_KEY;
+const awsregion = process.env.AWS_REGION;
+
+// Configurar AWS SDK con las credenciales de acceso
+const s3bucket = new AWS.S3({
+  accessKeyId: awsaccesid,
+  secretAccessKey: awsacceskey,
+  region: awsregion
+});
+
+// Middleware CORS
+app.use(cors());
+app.use(bodyParser.json({ limit: '100mb' })); // Ajusta el límite según tus necesidades
+app.use(express.json());
+
 
 // Definir esquemas y modelos de Mongoose
 const userSchema = new mongoose.Schema({
@@ -75,6 +94,42 @@ const Book = mongoose.model('Book', bookSchema);
 const Review = mongoose.model('Review', reviewSchema);
 const Order = mongoose.model('Order', orderSchema);
 const Cart = mongoose.model('Cart', cartSchema);
+
+// --------------------------------------------
+// LA FUNCION FUNCIONA CUANDO LA BASE64 TRAE UN ENCABEZADO COMO ESTE
+// data:image/jpeg;base64,/9j/4AAQSkZJRg
+// VERIFICAR QUE MANDEN IGUAL SUS IMAGENES PARA QUE NO HAYA PROBLEMAS
+// --------------------------------------------
+// Los libros se guardan en una carpeta llamada "Libros" en Amazon S3
+// Los nombres de sus carpetas dejenlo definido aca para que no haya clavo y se creen mas carpetas y se pierdan o le cobren a la cuenta
+
+// Función para subir una imagen a Amazon S3
+
+function subirImagenBase64(data, nombreArchivo, carpeta) {
+  // Eliminar el encabezado de la cadena base64
+  const base64Data = data.replace(/^data:image\/\w+;base64,/, '');
+  // Convertir la cadena base64 a un buffer
+  const buffer = Buffer.from(base64Data, 'base64');
+
+  // Configurar los parámetros para la carga a S3
+  const params = {
+    Bucket: 'proyecto2-bd2',
+    Key: `${carpeta}/${nombreArchivo}`,
+    Body: buffer,
+    ContentType: 'image/jpeg'
+  };
+
+  // Realizar la carga a S3 y devolver una promesa
+  return new Promise((resolve, reject) => {
+    s3bucket.upload(params, (err, data) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data.Location);
+      }
+    });
+  });
+}
 
 function startServer() {
 // Endpoint para insertar datos iniciales
@@ -317,8 +372,37 @@ app.post('/insert-initial-data', async (req, res) => {
     }
   });
 
+  // Endpoint para agregar un libro
+  app.post('/libros/addlibro', async (req, res) => {
+    try {
+      const { title, authorId, description, genre, publicationDate, price, stock, imageUrl, averageRating } = req.body;
+
+      // Subir imagen a Amazon S3
+      //console.log(imageUrl)
+      const imageUrlS3 = await subirImagenBase64(imageUrl, `${title}.jpg`, 'Libros');
+      console.log('Imagen subida a Amazon S3:', imageUrlS3);
+
+      const book = new Book({
+        title,
+        authorId,
+        description,
+        genre,
+        publicationDate,
+        price,
+        stock,
+        imageUrl: imageUrlS3,
+        averageRating
+      });
+      const newBook = await book.save();
+      res.json(newBook);
+    } catch (err) {
+      console.error('Error al agregar libro:', err);
+      res.status(500).json({ error: 'Error al agregar libro' });
+    }
+  });
+
   // Endpoint para obtener todos los libros
-  app.get('/books', async (req, res) => {
+  app.get('/libros/getlibros', async (req, res) => {
     try {
       const books = await Book.find().populate('authorId').exec();
       res.json(books);
@@ -327,6 +411,89 @@ app.post('/insert-initial-data', async (req, res) => {
       res.status(500).json({ error: 'Error al obtener libros' });
     }
   });
+
+  // Endpoint para obtener un libro por su ID
+  app.get('/libros/getlibro/:id', async (req, res) => {
+    try {
+      const book = await Book.findById(req.params.id).populate('authorId').exec();
+      if (book) {
+        res.json(book);
+      } else {
+        res.status(404).json({ error: 'Libro no encontrado' });
+      }
+    } catch (err) {
+      console.error('Error al obtener libro:', err);
+      res.status(500).json({ error: 'Error al obtener libro' });
+    }
+  });
+
+  // Endpoint para editar un libro por su ID
+  app.post('/libros/editlibro/:id', async (req, res) => {
+    try {
+      const book = await Book.findById(req.params.id).exec();
+
+      
+      if (book) {
+        const { title, authorId, description, genre, publicationDate, price, stock, imageUrl, averageRating } = req.body;
+        const imageUrlS3 = await subirImagenBase64(imageUrl, `${title}.jpg`, 'Libros');
+      console.log('Imagen editada subida a Amazon S3:', imageUrlS3);
+
+        book.title = title;
+        book.authorId = authorId;
+        book.description = description;
+        book.genre = genre;
+        book.publicationDate = publicationDate;
+        book.price = price;
+        book.stock = stock;
+        book.imageUrl = imageUrlS3;
+        book.averageRating = averageRating;
+        const updatedBook = await book.save();
+        res.json(updatedBook);
+      } else {
+        res.status(404).json({ error: 'Libro no encontrado' });
+      }
+    } catch (err) {
+      console.error('Error al editar libro:', err);
+      res.status(500).json({ error: 'Error al editar libro' });
+    }
+  });
+
+  // Endpoint para eliminar un libro por su ID
+app.post('/libros/deletelibro/:id', async (req, res) => {
+  try {
+    const result = await Book.deleteOne({ _id: req.params.id }).exec();
+    if (result.deletedCount > 0) {
+      res.json({ message: 'Libro eliminado correctamente' });
+    } else {
+      res.status(404).json({ error: 'Libro no encontrado' });
+    }
+  } catch (err) {
+    console.error('Error al eliminar libro:', err);
+    res.status(500).json({ error: 'Error al eliminar libro' });
+  }
+});
+
+
+  // Endpoint para obtener autores
+  app.get('/autores', async (req, res) => {
+    try {
+      const authors = await Author.find().populate('books').exec();
+      res.json(authors);
+    } catch (err) {
+      console.error('Error al obtener autores:', err);
+      res.status(500).json({ error: 'Error al obtener autores' });
+    }
+  });
+
+
+  // Manejo de errores
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('Error de sintaxis en JSON:', err);
+    return res.status(400).json({ error: 'Error de sintaxis en JSON' });
+  }
+  next();
+});
 
   app.listen(port, () => {
     console.log(`Servidor API ejecutándose en http://localhost:${port}`);
