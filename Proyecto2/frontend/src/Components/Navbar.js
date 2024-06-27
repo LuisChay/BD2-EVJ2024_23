@@ -10,6 +10,13 @@ export default function Navbar(){
           <ul>
             <CustomLink to="/Historial">Historial de Pedidos</CustomLink>
             <CustomLink to="/Carrito">Carrito</CustomLink>
+            
+            
+            <CustomLink to="/CardsAutores">Autores</CustomLink>
+            <CustomLink to="/Registro">Registrar</CustomLink>
+            <CustomLink to="/Perfil">Perfil</CustomLink>
+            <CustomLink to="/Login">Login</CustomLink>
+
           </ul>
         </nav>
     </>
