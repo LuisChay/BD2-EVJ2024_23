@@ -94,11 +94,13 @@ export default function AdminLibros() {
 
     const handleAgregarLibro = async () => {
         try {
-            // Preparar el objeto para enviar, convirtiendo la imagen a base64 si está presente
+            // Preparar el objeto para enviar, incluyendo la imagen en base64 si está presente
             const libroToAdd = {
                 ...nuevoLibro,
                 imageUrl: nuevoLibro.imageUrl.startsWith('data:image') ? nuevoLibro.imageUrl : ''
             };
+
+            console.log(libroToAdd);
 
             const response = await fetch('http://localhost:5000/libros/addlibro', {
                 method: 'POST',
@@ -139,14 +141,15 @@ export default function AdminLibros() {
             console.error('Error al editar libro:', error);
         }
     };
+
     const handleEliminarLibro = async (libroId) => {
         // Mostrar confirmación antes de eliminar
         const confirmarEliminar = window.confirm('¿Estás seguro que deseas eliminar este libro?');
-        
+
         if (!confirmarEliminar) {
             return; // Si el usuario cancela, salir de la función
         }
-    
+
         try {
             const response = await fetch(`http://localhost:5000/libros/deletelibro/${libroId}`, {
                 method: 'POST',
@@ -164,7 +167,7 @@ export default function AdminLibros() {
             console.error('Error al eliminar libro:', error);
         }
     };
-    
+
     return (
         <div>
             <h1 className="text-center">Libros</h1>
@@ -213,7 +216,7 @@ export default function AdminLibros() {
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="authorId">Autor</label>
-                                    <select className="form-control" id="authorId" name="authorId" value={                                    nuevoLibro.authorId} onChange={handleChange}>
+                                    <select className="form-control" id="authorId" name="authorId" value={nuevoLibro.authorId} onChange={handleChange}>
                                         <option value="">Selecciona un autor</option>
                                         {autores.map(author => (
                                             <option key={author._id} value={author._id}>{author.name}</option>
@@ -225,7 +228,7 @@ export default function AdminLibros() {
                                     <textarea className="form-control" id="description" name="description" value={nuevoLibro.description} onChange={handleChange} />
                                 </div>
                                 <div className="form-group">
-                                    <label htmlFor="genre">Género</label>
+                                    <label                                    htmlFor="genre">Género</label>
                                     <input type="text" className="form-control" id="genre" name="genre" value={nuevoLibro.genre} onChange={handleChange} />
                                 </div>
                                 <div className="form-group">
