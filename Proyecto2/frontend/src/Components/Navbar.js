@@ -8,7 +8,8 @@ export default function Navbar(){
             Proyecto2 BD2
           </Link>
           <ul>
-            <CustomLink to="/Historial">Historial</CustomLink>
+            <CustomLink to="/Historial">Historial de Pedidos</CustomLink>
+            <CustomLink to="/Carrito">Carrito</CustomLink>
           </ul>
         </nav>
     </>
