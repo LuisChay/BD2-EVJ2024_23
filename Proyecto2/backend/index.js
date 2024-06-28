@@ -133,13 +133,13 @@ function subirImagenBase64(data, nombreArchivo, carpeta) {
 }
 
 function startServer() {
-// Endpoint para insertar datos iniciales
-// ---------------------------------------
-// ---------------------------------------
-// NO USAR ESTE ENDPOINT
-// ---------------------------------------
-// ---------------------------------------
-app.post('/insert-initial-data', async (req, res) => {
+  // Endpoint para insertar datos iniciales
+  // ---------------------------------------
+  // ---------------------------------------
+  // NO USAR ESTE ENDPOINT
+  // ---------------------------------------
+  // ---------------------------------------
+  app.post('/insert-initial-data', async (req, res) => {
     try {
       // Datos de Usuario
       const user1 = new User({
@@ -426,10 +426,10 @@ app.post('/insert-initial-data', async (req, res) => {
 
   // Endpoint para obtener todos los pedidos
   app.get('/orders', async (req, res) => {
-    const {user} = req.query;
+    const { user } = req.query;
     //console.log(user)
     try {
-      const orders = await Order.find({userId: user}).exec();
+      const orders = await Order.find({ userId: user }).exec();
       res.json(orders);
     } catch (err) {
       console.error('Error al obtener ordenes:', err);
@@ -439,10 +439,10 @@ app.post('/insert-initial-data', async (req, res) => {
 
   // Endpoint para obtener el carrito
   app.get('/cart', async (req, res) => {
-    const {user} = req.query;
+    const { user } = req.query;
     //console.log(user)
     try {
-      const cart = await Cart.find({userId: user}).exec();
+      const cart = await Cart.find({ userId: user }).exec();
       res.json(cart);
     } catch (err) {
       console.error('Error al obtener el carrito:', err);
@@ -456,7 +456,7 @@ app.post('/insert-initial-data', async (req, res) => {
 
     try {
       if (!mongoose.Types.ObjectId.isValid(user) || !mongoose.Types.ObjectId.isValid(bookId)) {
-        return res.status(400).json({ error:'UserId o bookId invalido'});
+        return res.status(400).json({ error: 'UserId o bookId invalido' });
       }
 
       const updatedCart = await Cart.findOneAndUpdate(
@@ -467,7 +467,7 @@ app.post('/insert-initial-data', async (req, res) => {
 
       res.json(updatedCart);
     } catch (error) {
-      res.status(500).json({ error:`Error al agregar elementos al carrito: ${error.message}`});
+      res.status(500).json({ error: `Error al agregar elementos al carrito: ${error.message}` });
     }
   });
 
@@ -477,17 +477,17 @@ app.post('/insert-initial-data', async (req, res) => {
 
     try {
       if (!mongoose.Types.ObjectId.isValid(user) || !mongoose.Types.ObjectId.isValid(bookId)) {
-        return res.status(400).json({ error:'UserId o bookId invalido'});
+        return res.status(400).json({ error: 'UserId o bookId invalido' });
       }
 
       const cart = await Cart.findOne({ user });
       if (!cart) {
-        return res.status(404).json({ error:'Carrito no encontrado'});
+        return res.status(404).json({ error: 'Carrito no encontrado' });
       }
 
       const itemIndex = cart.items.findIndex(item => item.bookId.toString() === bookId);
       if (itemIndex === -1) {
-        return res.status(404).json({ error:'No existe el elemento en el carrito'});
+        return res.status(404).json({ error: 'No existe el elemento en el carrito' });
       }
 
       cart.items[itemIndex].quantity = quantity;
@@ -495,7 +495,7 @@ app.post('/insert-initial-data', async (req, res) => {
 
       res.json(cart);
     } catch (error) {
-      res.status(500).json({ error:`Error al modificar la cantidad: ${error.message}`});
+      res.status(500).json({ error: `Error al modificar la cantidad: ${error.message}` });
     }
   });
 
@@ -505,7 +505,7 @@ app.post('/insert-initial-data', async (req, res) => {
 
     try {
       if (!mongoose.Types.ObjectId.isValid(user) || !mongoose.Types.ObjectId.isValid(bookId)) {
-        return res.status(400).json({ error: 'UserId o bookId invalido'});
+        return res.status(400).json({ error: 'UserId o bookId invalido' });
       }
 
       const result = await Cart.updateOne(
@@ -514,12 +514,12 @@ app.post('/insert-initial-data', async (req, res) => {
       );
 
       if (result.nModified === 0) {
-        return res.status(404).json({ error: 'No existe el elemento en el carrito'});
+        return res.status(404).json({ error: 'No existe el elemento en el carrito' });
       }
 
       res.send('Elemento eliminado exitosamente');
     } catch (error) {
-      res.status(500).json({ error: `Error al eliminar elemento en el carrito: ${error.message}`});
+      res.status(500).json({ error: `Error al eliminar elemento en el carrito: ${error.message}` });
     }
   });
   // Endpoint para obtener un libro por su ID
@@ -542,11 +542,11 @@ app.post('/insert-initial-data', async (req, res) => {
     try {
       const book = await Book.findById(req.params.id).exec();
 
-      
+
       if (book) {
         const { title, authorId, description, genre, publicationDate, price, stock, imageUrl, averageRating } = req.body;
         const imageUrlS3 = await subirImagenBase64(imageUrl, `${title}.jpg`, 'Libros');
-      console.log('Imagen editada subida a Amazon S3:', imageUrlS3);
+        console.log('Imagen editada subida a Amazon S3:', imageUrlS3);
 
         book.title = title;
         book.authorId = authorId;
@@ -569,19 +569,19 @@ app.post('/insert-initial-data', async (req, res) => {
   });
 
   // Endpoint para eliminar un libro por su ID
-app.post('/libros/deletelibro/:id', async (req, res) => {
-  try {
-    const result = await Book.deleteOne({ _id: req.params.id }).exec();
-    if (result.deletedCount > 0) {
-      res.json({ message: 'Libro eliminado correctamente' });
-    } else {
-      res.status(404).json({ error: 'Libro no encontrado' });
+  app.post('/libros/deletelibro/:id', async (req, res) => {
+    try {
+      const result = await Book.deleteOne({ _id: req.params.id }).exec();
+      if (result.deletedCount > 0) {
+        res.json({ message: 'Libro eliminado correctamente' });
+      } else {
+        res.status(404).json({ error: 'Libro no encontrado' });
+      }
+    } catch (err) {
+      console.error('Error al eliminar libro:', err);
+      res.status(500).json({ error: 'Error al eliminar libro' });
     }
-  } catch (err) {
-    console.error('Error al eliminar libro:', err);
-    res.status(500).json({ error: 'Error al eliminar libro' });
-  }
-});
+  });
 
 
   // Endpoint para obtener autores
@@ -610,24 +610,23 @@ app.post('/libros/deletelibro/:id', async (req, res) => {
       res.status(500).json({ error: 'Error al eliminar autor' });
     }
   });
-  
+
 
   // Endpoint para agregar un autor
   app.post('/addAutor', async (req, res) => {
-    const { name, biography, photoUrl, books } = req.body;
-  
+    const { name, biography, photoUrl } = req.body;
+
     // Validación de parámetros requeridos
-    if (!name || !biography || !photoUrl || !books) {
+    if (!name || !biography || !photoUrl) {
       return res.status(400).json({ error: 'Todos los parámetros son requeridos' });
     }
-  
+
     const newAuthor = new Author({
       name,
       biography,
-      photoUrl,
-      books
+      photoUrl
     });
-  
+
     try {
       const savedAuthor = await newAuthor.save();
       res.status(201).json(savedAuthor);
@@ -636,17 +635,17 @@ app.post('/libros/deletelibro/:id', async (req, res) => {
       res.status(500).json({ error: 'Error al agregar autor' });
     }
   });
-  
+
 
   /*-----------------------------CATALOGO DE AUTORES */
   app.get('/authors', async (req, res) => {
-      try {
-          const autores = await Author.find().exec();
-          res.json(autores);
-      } catch (err) {
-          console.error('Error al obtener libros:', err);
-          res.status(500).json({ error: 'Error al obtener Autores' });
-      }
+    try {
+      const autores = await Author.find().exec();
+      res.json(autores);
+    } catch (err) {
+      console.error('Error al obtener libros:', err);
+      res.status(500).json({ error: 'Error al obtener Autores' });
+    }
   });
 
   //Encontrar un autor por su ID
@@ -668,7 +667,7 @@ app.post('/libros/deletelibro/:id', async (req, res) => {
       }
 
       res.json(autor);
-      
+
     } catch (err) {
       console.error('Error al obtener autor:', err);
       res.status(500).json({ error: 'Error al obtener autor' });
@@ -681,14 +680,14 @@ app.post('/libros/deletelibro/:id', async (req, res) => {
   app.post('/register', async (req, res) => {
     try {
       const { name, lastName, age, email, password, shippingAddress, paymentMethod, profilePhotoUrl, nameImage } = req.body;
-      
+
       //console.log("NAMEIMAGE:",nameImage)
-      
+
       // Validar que todos los campos requeridos están presentes
       if (!name || !lastName || !email || !password) {
         return res.status(400).json({ error: 'Faltan datos requeridos' });
       }
-      
+
       // Verificar si el correo ya está registrado
       const usuarioExistente = await User.findOne({ email }).exec();
       if (usuarioExistente) {
@@ -696,14 +695,14 @@ app.post('/libros/deletelibro/:id', async (req, res) => {
       }
 
       // Asignar una URL de foto predeterminada si no se proporciona
-      console.log("imagebase64:",profilePhotoUrl)
+      console.log("imagebase64:", profilePhotoUrl)
       var urlS3 = "https://proyecto2-bd2.s3.amazonaws.com/Usuarios/userPredeterminada.png";
-      if (profilePhotoUrl){
+      if (profilePhotoUrl) {
         const imageUrlS3 = await subirImagenBase64(profilePhotoUrl, nameImage, "Usuarios");
-        console.log("urlS3:",imageUrlS3)
+        console.log("urlS3:", imageUrlS3)
         var urlS3 = imageUrlS3;
       }
-      
+
       // Crear un nuevo usuario
       const nuevoUsuario = new User({
         name,
@@ -711,7 +710,7 @@ app.post('/libros/deletelibro/:id', async (req, res) => {
         age,
         email,
         password,
-        role:"Cliente",
+        role: "Cliente",
         shippingAddress,
         paymentMethod,
         profilePhotoUrl: urlS3
@@ -758,8 +757,8 @@ app.post('/libros/deletelibro/:id', async (req, res) => {
   });
 
 
-   // Obtener la información de un usuario por su ID
-   app.post('/user', async (req, res) => {
+  // Obtener la información de un usuario por su ID
+  app.post('/user', async (req, res) => {
     try {
       const { userId } = req.body;
 
@@ -777,22 +776,22 @@ app.post('/libros/deletelibro/:id', async (req, res) => {
       }
 
       res.json(usuario);
-      
+
     } catch (err) {
       console.error('Error al obtener Usuario:', err);
       res.status(500).json({ error: 'Error al obtener Usuario' });
     }
   });
-    
+
 
   // Manejo de errores
-app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    console.error('Error de sintaxis en JSON:', err);
-    return res.status(400).json({ error: 'Error de sintaxis en JSON' });
-  }
-  next();
-});
+  app.use((err, req, res, next) => {
+    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+      console.error('Error de sintaxis en JSON:', err);
+      return res.status(400).json({ error: 'Error de sintaxis en JSON' });
+    }
+    next();
+  });
 
   app.listen(port, () => {
     console.log(`Servidor API ejecutándose en http://localhost:${port}`);

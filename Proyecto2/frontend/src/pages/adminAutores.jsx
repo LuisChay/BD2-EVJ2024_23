@@ -23,8 +23,8 @@ const Autores = () => {
     return (
         <>
             <div className="container">
-                <div className="row">
-                    <CardAutores autores={autores} />
+                <div className="row gx-5">
+                        <CardAutores autores={autores} />
                 </div>
             </div>
         </>
