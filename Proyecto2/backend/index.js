@@ -36,7 +36,8 @@ const userSchema = new mongoose.Schema({
   password: String,
   role: String,
   shippingAddress: String,
-  paymentMethod: String
+  paymentMethod: String,
+  profilePhotoUrl: String // Nuevo campo para la foto de perfil
 }, { collection: 'User' });
 
 const authorSchema = new mongoose.Schema({
@@ -412,6 +413,115 @@ app.post('/insert-initial-data', async (req, res) => {
     }
   });
 
+  // Endpoint para obtener todos los usuarios
+  app.get('/users', async (req, res) => {
+    try {
+      const users = await User.find().exec();
+      res.json(users);
+    } catch (err) {
+      console.error('Error al obtener usuarios:', err);
+      res.status(500).json({ error: 'Error al obtener usuarios' });
+    }
+  });
+
+  // Endpoint para obtener todos los pedidos
+  app.get('/orders', async (req, res) => {
+    const {user} = req.query;
+    //console.log(user)
+    try {
+      const orders = await Order.find({userId: user}).exec();
+      res.json(orders);
+    } catch (err) {
+      console.error('Error al obtener ordenes:', err);
+      res.status(500).json({ error: 'Error al obtener ordenes' });
+    }
+  });
+
+  // Endpoint para obtener el carrito
+  app.get('/cart', async (req, res) => {
+    const {user} = req.query;
+    //console.log(user)
+    try {
+      const cart = await Cart.find({userId: user}).exec();
+      res.json(cart);
+    } catch (err) {
+      console.error('Error al obtener el carrito:', err);
+      res.status(500).json({ error: 'Error al obtener el carrito' });
+    }
+  });
+
+  // Endpoint para agregar un elemento al carrito
+  app.post('/api/cart/add', async (req, res) => {
+    const { user, bookId, quantity } = req.body;
+
+    try {
+      if (!mongoose.Types.ObjectId.isValid(user) || !mongoose.Types.ObjectId.isValid(bookId)) {
+        return res.status(400).json({ error:'UserId o bookId invalido'});
+      }
+
+      const updatedCart = await Cart.findOneAndUpdate(
+        { user },
+        { $push: { items: { bookId, quantity } } },
+        { new: true, upsert: true }
+      );
+
+      res.json(updatedCart);
+    } catch (error) {
+      res.status(500).json({ error:`Error al agregar elementos al carrito: ${error.message}`});
+    }
+  });
+
+  // Endpoint para actualizar la cantidad de un elemento en el carrito
+  app.post('/api/cart/updquantity', async (req, res) => {
+    const { user, bookId, quantity } = req.body;
+
+    try {
+      if (!mongoose.Types.ObjectId.isValid(user) || !mongoose.Types.ObjectId.isValid(bookId)) {
+        return res.status(400).json({ error:'UserId o bookId invalido'});
+      }
+
+      const cart = await Cart.findOne({ user });
+      if (!cart) {
+        return res.status(404).json({ error:'Carrito no encontrado'});
+      }
+
+      const itemIndex = cart.items.findIndex(item => item.bookId.toString() === bookId);
+      if (itemIndex === -1) {
+        return res.status(404).json({ error:'No existe el elemento en el carrito'});
+      }
+
+      cart.items[itemIndex].quantity = quantity;
+      await cart.save();
+
+      res.json(cart);
+    } catch (error) {
+      res.status(500).json({ error:`Error al modificar la cantidad: ${error.message}`});
+    }
+  });
+
+  // Endpoint para eliminar un elemento del carrito
+  app.delete('/api/cart/deleteone', async (req, res) => {
+    const { user, bookId } = req.body;
+
+    try {
+      if (!mongoose.Types.ObjectId.isValid(user) || !mongoose.Types.ObjectId.isValid(bookId)) {
+        return res.status(400).json({ error: 'UserId o bookId invalido'});
+      }
+
+      const result = await Cart.updateOne(
+        { user },
+        { $pull: { items: { bookId } } }
+      );
+
+      if (result.nModified === 0) {
+        return res.status(404).json({ error: 'No existe el elemento en el carrito'});
+      }
+
+      res.send('Elemento eliminado exitosamente');
+    } catch (error) {
+      res.status(500).json({ error: `Error al eliminar elemento en el carrito: ${error.message}`});
+    }
+  });
   // Endpoint para obtener un libro por su ID
   app.get('/libros/getlibro/:id', async (req, res) => {
     try {
@@ -528,6 +638,152 @@ app.post('/libros/deletelibro/:id', async (req, res) => {
   });
   
 
+  /*-----------------------------CATALOGO DE AUTORES */
+  app.get('/authors', async (req, res) => {
+      try {
+          const autores = await Author.find().exec();
+          res.json(autores);
+      } catch (err) {
+          console.error('Error al obtener libros:', err);
+          res.status(500).json({ error: 'Error al obtener Autores' });
+      }
+  });
+
+  //Encontrar un autor por su ID
+  app.post('/author', async (req, res) => {
+    try {
+      const { authorId } = req.body;
+
+      //validar que no venga vacio
+      if (!authorId) {
+        return res.status(400).json({ error: 'ID del autor requerido' });
+      }
+
+      // Buscar al autor por su ID
+      const autor = await Author.findById(authorId).populate('books').exec();
+
+      // Validar que el autor exista
+      if (!autor) {
+        return res.status(404).json({ error: 'Autor no encontrado' });
+      }
+
+      res.json(autor);
+      
+    } catch (err) {
+      console.error('Error al obtener autor:', err);
+      res.status(500).json({ error: 'Error al obtener autor' });
+    }
+  });
+
+
+  /*--------------MANEJO DE USUARIOS -------------------*/
+  // Registrar un usuario
+  app.post('/register', async (req, res) => {
+    try {
+      const { name, lastName, age, email, password, shippingAddress, paymentMethod, profilePhotoUrl, nameImage } = req.body;
+      
+      //console.log("NAMEIMAGE:",nameImage)
+      
+      // Validar que todos los campos requeridos están presentes
+      if (!name || !lastName || !email || !password) {
+        return res.status(400).json({ error: 'Faltan datos requeridos' });
+      }
+      
+      // Verificar si el correo ya está registrado
+      const usuarioExistente = await User.findOne({ email }).exec();
+      if (usuarioExistente) {
+        return res.status(400).json({ error: 'El correo ya está registrado' });
+      }
+
+      // Asignar una URL de foto predeterminada si no se proporciona
+      console.log("imagebase64:",profilePhotoUrl)
+      var urlS3 = "https://proyecto2-bd2.s3.amazonaws.com/Usuarios/userPredeterminada.png";
+      if (profilePhotoUrl){
+        const imageUrlS3 = await subirImagenBase64(profilePhotoUrl, nameImage, "Usuarios");
+        console.log("urlS3:",imageUrlS3)
+        var urlS3 = imageUrlS3;
+      }
+      
+      // Crear un nuevo usuario
+      const nuevoUsuario = new User({
+        name,
+        lastName,
+        age,
+        email,
+        password,
+        role:"Cliente",
+        shippingAddress,
+        paymentMethod,
+        profilePhotoUrl: urlS3
+      });
+
+      // Guardar el nuevo usuario en la base de datos
+      await nuevoUsuario.save();
+      res.status(201).json({ message: 'Usuario registrado exitosamente', usuario: nuevoUsuario });
+    } catch (err) {
+      console.error('Error al registrar usuario:', err);
+      res.status(500).json({ error: 'Error al registrar usuario' });
+    }
+  });
+
+  //Iniciar sesión
+  app.post('/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      // Validar que el correo y la contraseña estén presentes
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Correo y contraseña son requeridos' });
+      }
+
+      // Buscar al usuario por su correo electrónico
+      const usuario = await User.findOne({ email }).exec();
+
+      // Validar que el usuario exista
+      if (!usuario) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      const useObject = usuario.toObject();
+      // Validar la contraseña
+      if (password !== useObject.password) {
+        return res.status(401).json({ error: 'Contraseña incorrecta' });
+      }
+
+      res.json(usuario);
+    } catch (err) {
+      console.error('Error al iniciar sesión:', err);
+      res.status(500).json({ error: 'Error al iniciar sesión' });
+    }
+  });
+
+
+   // Obtener la información de un usuario por su ID
+   app.post('/user', async (req, res) => {
+    try {
+      const { userId } = req.body;
+
+      //validar que no venga vacio
+      if (!userId) {
+        return res.status(400).json({ error: 'ID del autor requerido' });
+      }
+
+      // Buscar al autor por su ID
+      const usuario = await User.findById(userId).exec();
+
+      // Validar que el autor exista
+      if (!usuario) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      res.json(usuario);
+      
+    } catch (err) {
+      console.error('Error al obtener Usuario:', err);
+      res.status(500).json({ error: 'Error al obtener Usuario' });
+    }
+  });
+    
 
   // Manejo de errores
 app.use((err, req, res, next) => {
@@ -542,6 +798,7 @@ app.use((err, req, res, next) => {
     console.log(`Servidor API ejecutándose en http://localhost:${port}`);
   });
 }
+
 
 // Conectar a la base de datos con el nombre especificado
 mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true, dbName: dbName })

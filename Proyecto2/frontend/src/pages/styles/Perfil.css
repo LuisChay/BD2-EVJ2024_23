@@ -1,0 +1,94 @@
+*{
+    margin: 0;
+    padding: 0;
+}
+
+.Perfil{
+	min-height: 100vh;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+	flex-direction: column;
+}
+
+h1{
+    max-width: 1050px;
+    font-size: 2em;
+    font-family: Lato, sans-serif;
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 40px 0;
+    
+  }
+
+  html, 
+  body{
+    font-size: 18px;
+    background-color: #f5f6f7;
+  }
+
+.contenedor-perfil{
+  width: 1170px;
+  height: 600px;
+  margin: 10px 10px 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  box-shadow:0 3px 13px 1px rgb(0 0 0 / 9%);
+}
+
+.imagen-perfil{
+  height: 400px;
+  width: 400px;
+}
+
+.img-boton{
+  
+  flex-direction: column;
+  justify-content:left;
+  max-width: 450px;
+  max-height: 520px;
+  align-items: center;
+  padding-bottom: 10px;
+}
+
+.img-boton p {
+  padding: 0.3rem 1rem;
+  font-size: 1rem;
+  max-height: 80px; /* Altura máxima del contenedor de texto */
+  overflow: auto; /* Habilitar desplazamiento */
+  text-overflow: ellipsis;
+  display: block;
+  line-height: 1.5rem;
+  overflow: hidden; /*quitarlo si da problema*/
+}
+
+.contenedor-datos{
+  
+  flex-direction: column;
+  justify-content: center;
+  width: 600px;
+  font-size: 18px;
+  text-align: center;
+  padding: 40px;
+  font-family: Lato, sans-serif;
+  font-weight: 400;
+  line-height: 1.5rem;
+  
+  max-height: 550px;
+  overflow: auto; /* Habilitar desplazamiento */
+}
+
+.contenedor-datos p {
+  max-height: 150px; /* Altura máxima de los párrafos */
+  overflow: auto; /* Habilitar desplazamiento */
+}
+
+
+.tablita{
+  height: 250px;
+  overflow: auto; /* Habilitar desplazamiento */
+}
