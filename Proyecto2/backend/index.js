@@ -783,7 +783,376 @@ app.post('/libros/deletelibro/:id', async (req, res) => {
       res.status(500).json({ error: 'Error al obtener Usuario' });
     }
   });
+  
+     //Endpoint para obtener libros del usuario que inicio sesion
+ app.post("/get_books", async(req, res) => {
+
+  //obtener nombre del usuario
+  const { idUser } = req.body
+
+  //Buscar el user y obtener su id
+  try {
+   
+
+    //Buscar las ordenes que tengan el usuario por su id.
+    const ordenes = await Order.find({userId: idUser}).exec();
+    if(ordenes){
+
+      let idLibros = []
     
+    for(let c = 0; c < ordenes.length; c++) {
+      //console.log(ordenes[c])
+      let item = ordenes[c].items
+      //Recorre los items de cada orden para obtener el id de cada libro.
+      for(let i = 0; i < item.length; i++) {
+        
+        
+        idLibros.push(item[i].bookId)
+      }
+
+    }
+
+    let libros = []
+
+    for(let c = 0; c < idLibros.length; c++) {
+      //console.log(idLibros[c])
+      const libro = await Book.find({_id: idLibros[c]}).exec()
+      const titulo = libro[0].title
+      const authorid = libro[0].authorId
+      const autor = await Author.find({_id: authorid}).exec()
+      const nameAutor = autor[0].name
+      const descripcion = libro[0].description
+      const genero = libro[0].genre
+      const disponibilidad = libro[0].stock 
+      const puntuacion = libro[0].averageRating 
+      const imagen = libro[0].imageUrl
+
+
+      
+      const comentarios = await Review.find({bookId: idLibros[c]}).exec()
+      let reseñas = []
+      for(let i = 0; i < comentarios.length; i++) {
+        const idUsuario = comentarios[i].userId
+        const usuario = await User.find({_id: idUsuario}).exec()
+        const nombre = usuario[0].name
+        const comentario = comentarios[i].comment 
+        const fecha = comentarios[i].date 
+        const rating = comentarios[i].rating 
+        
+
+
+        const nuevo_comentario = {
+          "nombre": nombre,
+          "comentario": comentario,
+          "fecha": fecha,
+          "rating": rating 
+        }
+        reseñas.push(nuevo_comentario)
+      }
+
+      const nuevo_libro = {
+        "titulo": titulo,
+        "autor": nameAutor,
+        "descripcion": descripcion,
+        "genero": genero,
+        "disponibilidad": disponibilidad,
+        "puntuacion": puntuacion,
+        "reseñas": reseñas,
+        "imagen": imagen
+      }
+
+      libros.push(nuevo_libro)
+      
+    }
+
+    //Buscar el libro por su id y los comentarios por el id de libro.
+    res.send(libros)
+      
+    } 
+    
+
+
+
+  } catch (err) {
+    console.error("Error al obtener el id del usuario:", err);
+    res.status(500).json({ error: "Error al obtner el id del usuario"})
+
+  }
+
+  
+
+
+
+
+
+})
+
+//Endpoint para insertar una reseña
+app.post("/resenia", async(req, res) => {
+  const { titulo, comentario, idUser, date, rating } = req.body
+  
+  try {
+
+    //buscar id del libro
+    const libro = await Book.find({title: titulo}).exec();
+
+    //buscar id del usuario y validar que existe
+    const usuario = await User.find({_id: idUser}).exec();
+
+    if (usuario) {
+      const new_review = new Review({
+        bookId: libro[0]._id,
+        userId: idUser,
+        rating: rating,
+        comment: comentario,
+        date: date
+      });
+
+      //Actualizar rating del libro
+      const comentarios = await Review.find({bookId: libro[0]._id}).exec()
+
+      let valor = 0;
+      let suma = 0;
+      for(let i = 0; i < comentarios.length; i++) {
+        valor+=1
+  
+        const rating = comentarios[i].rating 
+        suma+=rating
+      
+      }
+
+      console.log(valor)
+
+      let rating_promedio = suma/valor 
+      
+
+      libro[0].averageRating = rating_promedio.toFixed(1);
+      await libro[0].save();
+
+
+  
+      const reviewResult = await new_review.save()
+      console.log("review insertada:", reviewResult)
+      res.json({Mensaje: "Insertado con exito"})
+    } else {
+      console.error("Error al insertar una review:", err);
+      res.status(500).json({error: "No existe el usuario"});
+    }
+
+
+
+
+    
+
+
+  } catch(err) {
+    console.error("Error al insertar una review:", err);
+    res.status(500).json({error: "Error al insertar review"});
+  }
+
+
+})
+
+//Endpoint para busqueda y filtrado
+app.post("/busqueda", async(req, res) => {
+
+  const { valor, filtro } = req.body
+
+  try {
+    let libros = []
+    
+    if(filtro == "Genero") {
+      const books = await Book.find({genre: valor});
+      for(let c = 0; c < books.length; c++) {
+        //obtener datos
+        const titulo = books[c].title;
+        const autorId = books[c].authorId;
+        const autor = await Author.find({_id: autorId})
+        const nombre_autor = autor[0].name;
+        const descripcion = books[c].description;
+        const genero = books[c].genre
+        const fecha = books[c].publicationDate 
+        const precio = books[c].price 
+        const stock = books[c].stock
+        const imagen = books[c].imageUrl
+        const rating = books[c].averageRating 
+
+        const nuevo_objeto = {
+          "name": nombre_autor
+        }
+        
+
+        const nuevo_libro = {
+          "title": titulo,
+          "authorId": nuevo_objeto,
+          "description": descripcion, 
+          "genre": genero, 
+          "publicationDate": fecha,
+          "price": precio, 
+          "stock": stock,
+          "imageUrl": imagen,
+          "averageRating": rating 
+        }
+        libros.push(nuevo_libro)
+      }
+
+    } else if (filtro == "Titulo") {
+      const books = await Book.find({title: valor});
+      for(let c = 0; c < books.length; c++) {
+        //obtener datos
+        const titulo = books[c].title;
+        const autorId = books[c].authorId;
+        const autor = await Author.find({_id: autorId})
+        const nombre_autor = autor[0].name;
+        const descripcion = books[c].description;
+        const genero = books[c].genre
+        const fecha = books[c].publicationDate 
+        const precio = books[c].price 
+        const stock = books[c].stock
+        const imagen = books[c].imageUrl
+        const rating = books[c].averageRating 
+
+        const nuevo_objeto = {
+          "name": nombre_autor
+        }
+        
+
+        const nuevo_libro = {
+          "title": titulo,
+          "authorId": nuevo_objeto,
+          "description": descripcion, 
+          "genre": genero, 
+          "publicationDate": fecha,
+          "price": precio, 
+          "stock": stock,
+          "imageUrl": imagen,
+          "averageRating": rating 
+        }
+        libros.push(nuevo_libro)
+      }
+
+    } else if (filtro == "Precio") {
+      
+      const floatValue = parseFloat(valor);
+      const books = await Book.find({ price: {$lt: floatValue} });
+      for(let c = 0; c < books.length; c++) {
+        //obtener datos
+        const titulo = books[c].title;
+        const autorId = books[c].authorId;
+        const autor = await Author.find({_id: autorId})
+        const nombre_autor = autor[0].name;
+        const descripcion = books[c].description;
+        const genero = books[c].genre
+        const fecha = books[c].publicationDate 
+        const precio = books[c].price 
+        const stock = books[c].stock
+        const imagen = books[c].imageUrl
+        const rating = books[c].averageRating 
+
+        const nuevo_objeto = {
+          "name": nombre_autor
+        }
+        
+
+        const nuevo_libro = {
+          "title": titulo,
+          "authorId": nuevo_objeto,
+          "description": descripcion, 
+          "genre": genero, 
+          "publicationDate": fecha,
+          "price": precio, 
+          "stock": stock,
+          "imageUrl": imagen,
+          "averageRating": rating 
+        }
+        libros.push(nuevo_libro)
+      }
+
+
+    } else if (filtro == "Puntuacion") {
+      const floatValue = parseFloat(valor);
+      const books = await Book.find({ averageRating: { $lt: floatValue } });
+      for(let c = 0; c < books.length; c++) {
+        //obtener datos
+        const titulo = books[c].title;
+        const autorId = books[c].authorId;
+        const autor = await Author.find({_id: autorId})
+        const nombre_autor = autor[0].name;
+        const descripcion = books[c].description;
+        const genero = books[c].genre
+        const fecha = books[c].publicationDate 
+        const precio = books[c].price 
+        const stock = books[c].stock
+        const imagen = books[c].imageUrl
+        const rating = books[c].averageRating 
+
+        const nuevo_objeto = {
+          "name": nombre_autor
+        }
+        
+
+        const nuevo_libro = {
+          "title": titulo,
+          "authorId": nuevo_objeto,
+          "description": descripcion, 
+          "genre": genero, 
+          "publicationDate": fecha,
+          "price": precio, 
+          "stock": stock,
+          "imageUrl": imagen,
+          "averageRating": rating 
+        }
+        libros.push(nuevo_libro)
+      }
+
+    } else if (filtro == "Autor") {
+      const idAutor = await Author.find({name: valor})
+      const books = await Book.find({authorId: idAutor});
+      for(let c = 0; c < books.length; c++) {
+        //obtener datos
+        const titulo = books[c].title;
+        const autorId = books[c].authorId;
+        const autor = await Author.find({_id: autorId})
+        const nombre_autor = autor[0].name;
+        const descripcion = books[c].description;
+        const genero = books[c].genre
+        const fecha = books[c].publicationDate 
+        const precio = books[c].price 
+        const stock = books[c].stock
+        const imagen = books[c].imageUrl
+        const rating = books[c].averageRating 
+
+        const nuevo_objeto = {
+          "name": nombre_autor
+        }
+        
+
+        const nuevo_libro = {
+          "title": titulo,
+          "authorId": nuevo_objeto,
+          "description": descripcion, 
+          "genre": genero, 
+          "publicationDate": fecha,
+          "price": precio, 
+          "stock": stock,
+          "imageUrl": imagen,
+          "averageRating": rating 
+        }
+        libros.push(nuevo_libro)
+      }
+
+    } else {
+      res.status(500).json({error: "filtro no valido"})
+    }
+    res.json(libros)
+
+
+  } catch (err) {
+    console.error('Error al buscar libros:', err);
+    res.status(500).json({ error: 'Error al buscar libros' });
+  }
+
+})
 
   // Manejo de errores
 app.use((err, req, res, next) => {

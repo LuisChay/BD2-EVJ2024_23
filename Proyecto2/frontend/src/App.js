@@ -15,6 +15,8 @@ import AddUser from "./components/AddUser.js";
 import UserProfile from "./components/UserProfile.js";
 import Login from "./components/Login.js";
 import AuthorProfile from "./components/AuthorProfile.js";
+import Busqueda from './Components/Busqueda.js';
+import Resenia from './Components/Resenia.js';
 
 function App() {
   return (
@@ -28,7 +30,8 @@ function App() {
           <Route path="/autores" element={<Autores/>}/>
           <Route path="/Historial" element={<Historial />} />
           <Route path="/Carrito" element={<Carrito />} />
-          
+          <Route path="/Busqueda" element={<Busqueda />} />
+          <Route path="/Resenia" element={<Resenia />} />
           <Route path="/CardsAutores" element={<Cards/>} />
           <Route path="/Registro" element={<AddUser/>} />
           <Route path="/Perfil" element={<UserProfile/>} />
