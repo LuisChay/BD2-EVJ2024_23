@@ -471,6 +471,23 @@ function startServer() {
     }
   });
 
+  // Endpoint para actualizar el estado de un pedido
+app.put('/orders/:id/status', async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const { status } = req.body;
+    const updatedOrder = await Order.findByIdAndUpdate(orderId, { status }, { new: true });
+
+    if (updatedOrder) {
+      res.status(200).json(updatedOrder);
+    } else {
+      res.status(404).json({ error: 'Order not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Error updating order status' });
+  }
+});
+
   // Endpoint para actualizar la cantidad de un elemento en el carrito
   app.post('/api/cart/updquantity', async (req, res) => {
     const { user, bookId, quantity } = req.body;
