@@ -437,12 +437,84 @@ app.post('/insert-initial-data', async (req, res) => {
     }
   });
 
+  // Endpoint para actualizar el estado de una entrega
+  app.post('/orders/editstatus', async (req, res) => {
+    const { orderId, newstatus } = req.query;
+
+    try {
+      if (!mongoose.Types.ObjectId.isValid(orderId)) {
+        console.log(orderId);
+        return res.status(400).json({ error:'OrderId invalido'});
+      }
+
+      const order = await Order.findOne({ _id: orderId });
+      if (!order) {
+        return res.status(404).json({ error:'Orden no encontrada'});
+      }
+
+      order.status = newstatus;
+      await order.save();
+
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error:`Error al modificar el estado del pedido: ${error.message}`});
+    }
+  });
+
+  // Endpoint para crear una nueva orden a partir del carrito
+  app.post('/orders/create', async (req, res) => {
+    const { user, totalA } = req.body;
+
+    try {
+      if (!mongoose.Types.ObjectId.isValid(user)) {
+        return res.status(400).send('Invalid userId');
+      }
+
+      const us = await User.findOne({ _id: user }).exec();
+      if (!us) {
+        return res.status(404).send('No existe el usuario');
+      }
+
+      const cart = await Cart.findOne({ userId: user }).populate('items.bookId').exec();
+
+      if (!cart || cart.items.length === 0) {
+        return res.status(404).send('Cart is empty');
+      }
+
+      const orderItems = cart.items.map(item => ({
+        bookId: item.bookId._id,
+        quantity: item.quantity,
+        price: item.bookId.price
+      }));
+
+      const newOrder = new Order({
+        userId: user,
+        items: orderItems,
+        totalAmount: totalA,
+        shippingAddress: us.shippingAddress,
+        paymentMethod: us.paymentMethod,
+        status: 'En Proceso', 
+        orderDate: new Date()
+      });
+
+      await newOrder.save();
+      
+      // Vaciar el carrito después de crear la orden
+      await Cart.updateOne({ userId: user }, { $set: { items: [] } });
+
+      res.json(newOrder);
+    } catch (error) {
+      console.error('Error al crear la orden:', error);
+      res.status(500).json({ error: 'Error al crear la orden' });
+    }
+  });
+
   // Endpoint para obtener el carrito
   app.get('/cart', async (req, res) => {
     const {user} = req.query;
-    //console.log(user)
+    
     try {
-      const cart = await Cart.find({userId: user}).exec();
+      const cart = await Cart.findOne({userId: user}).exec();
       res.json(cart);
     } catch (err) {
       console.error('Error al obtener el carrito:', err);
@@ -452,7 +524,7 @@ app.post('/insert-initial-data', async (req, res) => {
 
   // Endpoint para agregar un elemento al carrito
   app.post('/api/cart/add', async (req, res) => {
-    const { user, bookId, quantity } = req.body;
+    const { user, bookId, quantity } = req.query;
 
     try {
       if (!mongoose.Types.ObjectId.isValid(user) || !mongoose.Types.ObjectId.isValid(bookId)) {
@@ -460,8 +532,8 @@ app.post('/insert-initial-data', async (req, res) => {
       }
 
       const updatedCart = await Cart.findOneAndUpdate(
-        { user },
-        { $push: { items: { bookId, quantity } } },
+        { userId: user },
+        { $push: { items: { bookId: bookId, quantity: quantity } } },
         { new: true, upsert: true }
       );
 
@@ -480,7 +552,7 @@ app.post('/insert-initial-data', async (req, res) => {
         return res.status(400).json({ error:'UserId o bookId invalido'});
       }
 
-      const cart = await Cart.findOne({ user });
+      const cart = await Cart.findOne({ userId: user });
       if (!cart) {
         return res.status(404).json({ error:'Carrito no encontrado'});
       }
@@ -509,8 +581,8 @@ app.post('/insert-initial-data', async (req, res) => {
       }
 
       const result = await Cart.updateOne(
-        { user },
-        { $pull: { items: { bookId } } }
+        { userId: user },
+        { $pull: { items: { bookId: bookId } } }
       );
 
       if (result.nModified === 0) {
@@ -522,6 +594,57 @@ app.post('/insert-initial-data', async (req, res) => {
       res.status(500).json({ error: `Error al eliminar elemento en el carrito: ${error.message}`});
     }
   });
+
+  // Endpoint para vaciar la lista de items del carrito
+  app.post('/cart/empty', async (req, res) => {
+    const { user } = req.query;
+
+    try {
+      if (!mongoose.Types.ObjectId.isValid(user)) {
+        return res.status(400).send('Invalid userId');
+      }
+
+      const result = await Cart.updateOne(
+        { userId: user },
+        { $set: { items: [] } }
+      );
+
+      if (result.nModified === 0) {
+        return res.status(404).send('Cart not found or already empty');
+      }
+
+      res.send('Cart emptied successfully');
+    } catch (error) {
+      res.status(500).send(`Error emptying cart: ${error.message}`);
+    }
+  });
+
+  // Endpoint para obtener el total del carrito
+  app.get('/cart/total', async (req, res) => {
+    const { user } = req.query;
+
+    try {
+      if (!mongoose.Types.ObjectId.isValid(user)) {
+        return res.status(400).send('Invalid userId');
+      }
+
+      const cart = await Cart.findOne({ userId: user }).populate('items.bookId').exec();
+
+      if (!cart) {
+        return res.status(404).send('Cart not found');
+      }
+
+      const total = cart.items.reduce((sum, item) => {
+        return sum + (item.bookId.price * item.quantity);
+      }, 0);
+
+      res.json({ total });
+    } catch (error) {
+      console.error('Error al obtener el total del carrito:', error);
+      res.status(500).json({ error: 'Error al obtener el total del carrito' });
+    }
+  });
+
   // Endpoint para obtener un libro por su ID
   app.get('/libros/getlibro/:id', async (req, res) => {
     try {

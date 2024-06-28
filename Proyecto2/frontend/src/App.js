@@ -7,7 +7,7 @@ import Autores from './pages/adminAutores';
 
 import './App.css';
 import Navbar from "./components/Navbar.js";
-import {Historial} from './components/Historial';
+import {Historial} from './components/Historial.js';
 import Carrito from './components/Carrito.js';
 
 import Cards from './components/CardsVerAutores.js';
