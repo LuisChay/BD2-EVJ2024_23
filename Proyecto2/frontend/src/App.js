@@ -15,6 +15,7 @@ import AddUser from "./components/AddUser.js";
 import UserProfile from "./components/UserProfile.js";
 import Login from "./components/Login.js";
 import AuthorProfile from "./components/AuthorProfile.js";
+import HistorialCompras from "./components/HistorialCompras.js";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route path="/catalogo" element={<Catalogo/>}/>
           <Route path="/autores" element={<Autores/>}/>
           <Route path="/Historial" element={<Historial />} />
+          <Route path="/HistorialCompras" element={<HistorialCompras />} />
           <Route path="/Carrito" element={<Carrito />} />
           
           <Route path="/CardsAutores" element={<Cards/>} />
