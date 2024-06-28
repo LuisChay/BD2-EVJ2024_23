@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function AdminLibros() {
+export  function AdminLibros() {
     const [libros, setLibros] = useState([]);
     const [autores, setAutores] = useState([]); // Estado para almacenar la lista de autores
     const [showModalNuevo, setShowModalNuevo] = useState(false);
@@ -318,4 +318,4 @@ export default function AdminLibros() {
         </div>
     );
 }
-
+export default AdminLibros
