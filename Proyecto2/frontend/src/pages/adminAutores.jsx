@@ -16,15 +16,15 @@ const Autores = () => {
     useEffect(() => {
         if (autores.length > 0) {
             const ids = autores.map(autor => autor._id);
-            console.log(ids);
+            console.log(autores);
         }
     }, [autores]);
 
     return (
         <>
             <div className="container">
-                <div className="row">
-                    <CardAutores autores={autores} />
+                <div className="row gx-5">
+                        <CardAutores autores={autores} />
                 </div>
             </div>
         </>
