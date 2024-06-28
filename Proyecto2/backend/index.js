@@ -587,7 +587,8 @@ function startServer() {
   // Endpoint para obtener autores
   app.get('/getAutors', async (req, res) => {
     try {
-      const authors = await Author.find({}, { books: 0 }).exec();
+      const authors = await Author.find({}).exec();
+      // const authors = await Author.find({}, { books: 0 }).exec();
       res.json(authors);
     } catch (err) {
       console.error('Error al obtener autores:', err);
@@ -621,12 +622,15 @@ function startServer() {
       return res.status(400).json({ error: 'Todos los parámetros son requeridos' });
     }
 
+    // Subir imagen a Amazon S3
+    const imageUrlS3 = await subirImagenBase64(photoUrl, `${name}.jpg`, 'Autores');
+    console.log('Imagen subida a Amazon S3:', imageUrlS3);
     const newAuthor = new Author({
       name,
       biography,
-      photoUrl
+      photoUrl: imageUrlS3,
+      books: []
     });
-
     try {
       const savedAuthor = await newAuthor.save();
       res.status(201).json(savedAuthor);

@@ -16,7 +16,7 @@ const Autores = () => {
     useEffect(() => {
         if (autores.length > 0) {
             const ids = autores.map(autor => autor._id);
-            console.log(ids);
+            console.log(autores);
         }
     }, [autores]);
 
