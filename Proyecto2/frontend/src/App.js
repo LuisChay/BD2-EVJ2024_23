@@ -4,24 +4,24 @@ import {BrowserRouter as Router, Routes, Route} from 'react-router-dom';
 import AdminLibros from './pages/adminLibros';
 import Catalogo from './pages/catalogo';
 
-import Navbar from "./components/Navbar.js";
-import {Historial} from './components/Historial.js';
-import Carrito from './components/Carrito.js';
+import Navbar from "./Components/Navbar.js";
+import {Historial} from './Components/Historial.js';
+import Carrito from './Components/Carrito.js';
 
-import Cards from './components/CardsVerAutores.js';
-import AddUser from "./components/AddUser.js";
-import UserProfile from "./components/UserProfile.js";
-import Login from "./components/Login.js";
-import AuthorProfile from "./components/AuthorProfile.js";
-import Reseña from "./components/Reseñas.js"
-import Busqueda from "./components/Busqueda.js"
+import Cards from './Components/CardsVerAutores.js';
+import AddUser from "./Components/AddUser.js";
+import UserProfile from "./Components/UserProfile.js";
+import Login from "./Components/Login.js";
+import AuthorProfile from "./Components/AuthorProfile.js";
+import Reseña from "./Components/Reseñas.js"
+import Busqueda from "./Components/Busqueda.js"
 
 import './App.css';
 
 function App() {
   return (
     <>
-    <Busqueda/>
+  
     
     <Router>
       <Routes>
